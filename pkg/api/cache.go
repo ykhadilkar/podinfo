@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -33,7 +33,7 @@ func (s *Server) cacheWriteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := mux.Vars(r)["key"]
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		s.ErrorResponse(w, r, span, "reading the request body failed", http.StatusBadRequest)
 		return
@@ -141,7 +141,7 @@ func (s *Server) getCacheConn() (redis.Conn, error) {
 	return redis.Dial("tcp", redisUrl.Host, opts...)
 }
 
-func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) {
+func (s *Server) startCachePool(ticker *time.Ticker) {
 	if s.config.CacheServer == "" {
 		return
 	}
@@ -169,8 +169,6 @@ func (s *Server) startCachePool(ticker *time.Ticker, stopCh <-chan struct{}) {
 		setVersion()
 		for {
 			select {
-			case <-stopCh:
-				return
 			case <-ticker.C:
 				setVersion()
 			}
